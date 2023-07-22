@@ -3,12 +3,13 @@
 #set -x 
 #set -o pipefail
 
-debug=0
+debug=1
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 CYAN='\033[0;36m'
 RESET='\033[m'
+TOOL_PATH="$(pwd)"
 soc=g12a
 
 echo "USB Connect"
@@ -31,7 +32,7 @@ run_update_return()
     local cmd
     local need_spaces
 
-    cmd="../bin/update identify 7"
+    cmd="$TOOL_PATH/bin/update 2>/dev/null"
     need_spaces=0
     if [[ "$1" == "bulkcmd" ]] || [[ "$1" == "tplcmd" ]]; then
        need_spaces=1
@@ -63,6 +64,7 @@ run_update_return()
     return 0
 }
 
+
 # Wrapper to the Amlogic 'update' command
 # ---------------------------------------
 run_update()
@@ -71,6 +73,7 @@ run_update()
     local ret=0
 
     run_update_return "$@"
+    run_update_return identify 7
 
     if `echo $update_return | grep -q "ERR"`; then
        ret=1
@@ -284,7 +287,7 @@ if [[ $need_password == 1 ]]; then
    if [[ -z $password ]]; then
      echo "The board is locked with a password, put password.bin in folder password !"
      echo -n "Unlocking usb interface "
-     ../bin/update password ../password/password.bin
+     run_update_return password $TOOL_PATH/password/password.bin
      run_update_return identify 7
      if `echo $update_return | grep -iq "Password check OK"`; then
          echo -e $GREEN"Password [OK]"$RESET
@@ -296,20 +299,53 @@ if [[ $need_password == 1 ]]; then
    fi
 fi
 
-echo "Dump Efuse 0xFFFE0000"
 
-if [[ "$soc" ==  "g12a" ]]; then
+
+# Check if board is secure
+# ------------------------
+secured=0
+value=0
+# Board secure info is extracted from SEC_AO_SEC_SD_CFG10 register
+if [[ "$soc" == "gxl" ]]; then
+   run_update_return rreg 4 0xc8100228
+   value=0x`echo $update_return|grep -i c8100228|awk -F: '{gsub(/ /,"",$2);print $2}'`
+   print_debug "0xc8100228      = $value"
+   value=$(($value & 0x10))
+   print_debug "Secure boot bit = $value"
+fi
+if [[ "$soc" == "axg" ]] || [[ $soc == "txlx" ]] || [[ $soc == "g12a" ]]; then
    run_update_return rreg 4 0xff800228
    value=0x`echo $update_return|grep -i ff800228|awk -F: '{gsub(/ /,"",$2);print $2}'`
    print_debug "0xff800228      = $value"
    value=$(($value & 0x10))
    print_debug "Secure boot bit = $value"
 fi
+if [[ "$soc" == "m8" ]]; then
+   run_update_return rreg 4 0xd9018048
+   value=0x`echo $update_return|grep -i d9018048|awk -F: '{gsub(/ /,"",$2);print $2}'`
+   print_debug "0xd9018048      = $value"
+   value=$(($value & 0x80))
+   print_debug "Secure boot bit = $value"
+fi
+if [[ $value != 0 ]]; then
+   secured=1
+   echo "Board is in secure mode"
+fi
+
+
+echo "Dump Efuse 0xFFFE0000"
+
+echo "Run Amlogic-usbdl playload" 
+ 
+../bin/amlogic-usbdl ../payloads/bin/memdump_over_usb_efuse.bin EFuse.bin
+
 
 
 if [[ $value != 0 ]]; then
    secured=1
+   
 echo "Board is in secure mode"
+
 echo -n `hexdump -ve '1/1 "%.2X"' -n 0x20 -s 0x20 EFuse.bin` >> bl2aeskey
 echo -n `hexdump -ve '1/1 "%.2X"' -n 0x10 -s 0x40 EFuse.bin` >> bl2ivkey
 echo -n `hexdump -ve '1/1 "%.2X"' -n 0x20 -s 0xa0 EFuse.bin` >> pattern.secureboot.efuse
@@ -378,11 +414,6 @@ done
 openssl enc -aes-256-cbc -nopad -d -K $kernelaeskey -iv $ivkey -in boot.bin -out boot_dec.bin
 
 fi
- 
-echo "Run Amlogic-usbdl playload" 
- 
-../bin/amlogic-usbdl ../payloads/bin/memdump_over_usb_efuse.bin EFuse.bin
-
 
 echo "Extract_DTB"
 
