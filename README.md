@@ -65,7 +65,7 @@ To put box to usbdl mod with toopick in AV hole on box push button and connect b
 * Decrypt -boot/kernel
 * dtb.bin  -Device tree blob binary 
 * dtb_dts  -Device tree blob txt
-* root_rsa_keys.sha -sha256 of rootkeys used for encrypt booloader.
+* root_rsa_keys.sha -sha256 of rootkeys used for encrypt bootloader.
 * pattern.secureboot.efuse -pattern burned in efuse from manufacturer to enable secureboot
 
 ```
