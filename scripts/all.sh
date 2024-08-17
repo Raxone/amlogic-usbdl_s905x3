@@ -415,6 +415,12 @@ openssl enc -aes-256-cbc -nopad -d -K $kernelaeskey -iv $ivkey -in boot.bin -out
 
 fi
 
+echo "Extract FIP"
+
+mkdir fip
+
+../bin/gxlimg -e bootloader.bin fip
+
 echo "Extract_DTB"
 
 ../python/extract-dtb -o dts dtb.bin
