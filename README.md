@@ -4,8 +4,8 @@
 * https://github.com/Raxone/amlogic-usbdl_s905x3.git
 
 ## Changes 
-* 22.07.2023
-* add support for usb password protect
+* 14.09.2024
+* add gxlimg
 * fix some script 
 
 ## Disclaimer
