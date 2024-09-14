@@ -18,7 +18,7 @@ This tool exploits a [vulnerability](https://fredericb.info/2021/02/amlogic-usbd
 
 ## Supported targets
 * X88proX3
-* Probably work with all s905x3 box.
+* Work with all s905x3 box if usb is not locked or need password.
 
 ## Scripts
 * all.sh		
@@ -30,7 +30,8 @@ This tool exploits a [vulnerability](https://fredericb.info/2021/02/amlogic-usbd
 * Decrypt u-boot
 * Decrypt boot 
 * Extract bl3xaeskey+kernelaeskes
-* 
+* Extract asc.bin
+* Extract bl33.bin (u-boot_LZ4)
 * All files be in dump_all dir.
 
 ## Usage
